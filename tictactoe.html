@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tic Tac Toe</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    display: flex; justify-content: center; align-items: center;
+    min-height: 100vh; background: #1a1a2e; color: #eee;
+    flex-direction: column; gap: 24px;
+  }
+  h1 { font-size: 2rem; letter-spacing: 2px; }
+  #status {
+    font-size: 1.2rem; min-height: 1.5em;
+    transition: color 0.3s;
+  }
+  #board {
+    display: grid; grid-template-columns: repeat(3, 120px);
+    grid-template-rows: repeat(3, 120px); gap: 6px;
+  }
+  .cell {
+    background: #16213e; border: none; border-radius: 8px;
+    font-size: 3rem; font-weight: 700; color: #eee;
+    cursor: pointer; transition: background 0.2s, transform 0.1s;
+  }
+  .cell:hover:not(.taken) { background: #1a1a40; transform: scale(1.05); }
+  .cell.x { color: #e94560; }
+  .cell.o { color: #0f3460; }
+  .cell.win { background: #e94560; color: #fff; }
+  #restart {
+    padding: 12px 32px; font-size: 1rem; border: 2px solid #e94560;
+    background: transparent; color: #e94560; border-radius: 8px;
+    cursor: pointer; letter-spacing: 1px; transition: all 0.2s;
+  }
+  #restart:hover { background: #e94560; color: #fff; }
+</style>
+</head>
+<body>
+<h1>Tic Tac Toe</h1>
+<div id="status">Your turn (X)</div>
+<div id="board"></div>
+<button id="restart">New Game</button>
+<script>
+const board = document.getElementById('board');
+const status = document.getElementById('status');
+const restartBtn = document.getElementById('restart');
+const WIN = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,2,8],[2,4,6]];
+// fix: correct diagonal
+const WINS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+let cells, state, gameOver;
+
+function init() {
+  board.innerHTML = '';
+  state = Array(9).fill('');
+  gameOver = false;
+  status.textContent = 'Your turn (X)';
+  status.style.color = '#eee';
+  cells = [];
+  for (let i = 0; i < 9; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'cell';
+    btn.addEventListener('click', () => playerMove(i));
+    board.appendChild(btn);
+    cells.push(btn);
+  }
+}
+
+function playerMove(i) {
+  if (gameOver || state[i]) return;
+  place(i, 'X');
+  if (checkEnd('X')) return;
+  setTimeout(aiMove, 200);
+}
+
+function aiMove() {
+  const move = bestMove();
+  if (move === -1) return;
+  place(move, 'O');
+  checkEnd('O');
+}
+
+function place(i, mark) {
+  state[i] = mark;
+  cells[i].textContent = mark;
+  cells[i].classList.add(mark.toLowerCase(), 'taken');
+}
+
+function checkEnd(mark) {
+  const win = WINS.find(w => w.every(i => state[i] === mark));
+  if (win) {
+    win.forEach(i => cells[i].classList.add('win'));
+    status.textContent = mark === 'X' ? 'You win!' : 'AI wins!';
+    status.style.color = '#e94560';
+    gameOver = true;
+    return true;
+  }
+  if (state.every(c => c)) {
+    status.textContent = "It's a draw!";
+    status.style.color = '#f0a500';
+    gameOver = true;
+    return true;
+  }
+  status.textContent = mark === 'X' ? "AI thinking..." : 'Your turn (X)';
+  return false;
+}
+
+function bestMove() {
+  let best = -Infinity, move = -1;
+  for (let i = 0; i < 9; i++) {
+    if (!state[i]) {
+      state[i] = 'O';
+      const score = minimax(false, -Infinity, Infinity);
+      state[i] = '';
+      if (score > best) { best = score; move = i; }
+    }
+  }
+  return move;
+}
+
+function minimax(isMax, alpha, beta) {
+  const wO = WINS.some(w => w.every(i => state[i] === 'O'));
+  if (wO) return 10;
+  const wX = WINS.some(w => w.every(i => state[i] === 'X'));
+  if (wX) return -10;
+  if (state.every(c => c)) return 0;
+
+  if (isMax) {
+    let best = -Infinity;
+    for (let i = 0; i < 9; i++) {
+      if (!state[i]) {
+        state[i] = 'O';
+        best = Math.max(best, minimax(false, alpha, beta));
+        state[i] = '';
+        alpha = Math.max(alpha, best);
+        if (beta <= alpha) break;
+      }
+    }
+    return best;
+  } else {
+    let best = Infinity;
+    for (let i = 0; i < 9; i++) {
+      if (!state[i]) {
+        state[i] = 'X';
+        best = Math.min(best, minimax(true, alpha, beta));
+        state[i] = '';
+        beta = Math.min(beta, best);
+        if (beta <= alpha) break;
+      }
+    }
+    return best;
+  }
+}
+
+restartBtn.addEventListener('click', init);
+init();
+</script>
+</body>
+</html>
